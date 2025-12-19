@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<!-- HTML文档声明，指定这是HTML5文档 -->
+<html>
+<!-- HTML根元素开始 -->
+<head>
+    <!-- 文档头部信息开始 -->
+    
+    <!-- 页面标题，显示在浏览器标签页上 -->
+    <title>点云配准结果可视化</title>
+    
+    <!-- 指定字符编码为UTF-8，确保中文正常显示 -->
+    <meta charset="utf-8">
+    
+    <!-- 内联样式表，定义页面的样式 -->
+    <style>
+        /* 定义body元素的样式 */
+        body { 
+            margin: 0;  /* 移除默认外边距 */
+            padding: 0;  /* 移除默认内边距 */
+            font-family: Arial, sans-serif;  /* 设置字体为Arial或其他无衬线字体 */
+            background: #1e1e1e;  /* 设置背景色为深灰色 */
+            color: white;  /* 文字颜色为白色 */
+            overflow: hidden;  /* 隐藏溢出的内容，不显示滚动条 */
+            height: 100vh;  /* 高度为视口高度的100% */
+        }
+        
+        /* 定义container容器的样式 */
+        .container { 
+            display: flex;  /* 使用Flexbox布局 */
+            flex-direction: column;  /* 主轴方向为竖直 */
+            height: 100vh;  /* 高度为视口高度的100% */
+        }
+        
+        /* 定义controls控制面板的样式 */
+        .controls { 
+            padding: 8px 12px;  /* 上下8px，左右12px的内边距 */
+            background: #2d2d2d;  /* 背景色为较深的灰色 */
+            border-bottom: 1px solid #444;  /* 下边框为1px灰色线 */
+            min-height: 60px;  /* 最小高度60px */
+            flex-shrink: 0;  /* 不允许Flex收缩 */
+        }
+        
+        /* 定义viewer点云显示区域的样式 */
+        .viewer { 
+            flex: 1;  /* 占据剩余的所有空间 */
+            background: #000;  /* 背景色为黑色 */
+            position: relative;  /* 相对定位 */
+        }
+        
+        /* 定义header标题栏的样式 */
+        .header {
+            display: flex;  /* 使用Flexbox布局 */
+            justify-content: space-between;  /* 子元素两端对齐，中间空间最大 */
+            align-items: center;  /* 竖直方向居中对齐 */
+            margin-bottom: 8px;  /* 下外边距8px */
+        }
+        
+        /* 定义title标题的样式 */
+        .title {
+            font-size: 14px;  /* 字体大小14px */
+            font-weight: bold;  /* 字体加粗 */
+            color: #007acc;  /* 字体颜色为蓝色 */
+        }
+        
+        /* 定义button-group按钮组的样式 */
+        .button-group {
+            display: flex;  /* 使用Flexbox布局 */
+            gap: 6px;  /* 子元素之间的间距为6px */
+            align-items: center;  /* 竖直方向居中对齐 */
+        }
+        
+        /* 定义按钮的样式 */
+        button { 
+            padding: 4px 8px;  /* 上下4px，左右8px的内边距 */
+            background: #007acc;  /* 背景色为蓝色 */
+            color: white;  /* 文字颜色为白色 */
+            border: none;  /* 移除边框 */
+            border-radius: 2px;  /* 边角圆角半径2px */
+            cursor: pointer;  /* 鼠标悬停时显示指针图标 */
+            font-size: 12px;  /* 字体大小12px */
+            min-width: 60px;  /* 最小宽度60px */
+        }
+        
+        /* 定义按钮悬停时的样式 */
+        button:hover { 
+            background: #005a9e;  /* 悬停时背景色变为更深的蓝色 */
+        }
+        
+        /* 定义info信息区的样式 */
+        .info { 
+            display: flex;  /* 使用Flexbox布局 */
+            gap: 15px;  /* 子元素之间的间距为15px */
+            font-size: 11px;  /* 字体大小11px */
+            color: #ccc;  /* 文字颜色为浅灰色 */
+        }
+        
+        /* 定义sample-info样本信息的样式 */
+        .sample-info {
+            font-size: 11px;  /* 字体大小11px */
+            color: #aaa;  /* 文字颜色为中灰色 */
+            margin-left: 10px;  /* 左外边距10px */
+        }
+    </style>
+</head>
+<!-- 文档头部结束 -->
+
+<body>
+    <!-- 页面体开始 -->
+    
+    <!-- 主容器开始 -->
+    <div class="container">
+        
+        <!-- 控制面板开始 -->
+        <div class="controls">
+            
+            <!-- 标题栏开始 -->
+            <div class="header">
+                <!-- 页面标题 -->
+                <div class="title">点云配准结果可视化</div>
+                
+                <!-- 按钮组开始 -->
+                <div class="button-group">
+                    <!-- "上一个"按钮，点击时调用prevSample()函数 -->
+                    <button onclick="prevSample()">上一个</button>
+                    
+                    <!-- "下一个"按钮，点击时调用nextSample()函数 -->
+                    <button onclick="nextSample()">下一个</button>
+                    
+                    <!-- 显示当前样本序号的信息，初始值为"样本 0/0"，由JavaScript动态更新 -->
+                    <span class="sample-info" id="sampleInfo">样本 0/0</span>
+                </div>
+                <!-- 按钮组结束 -->
+                
+            </div>
+            <!-- 标题栏结束 -->
+            
+            <!-- 信息栏开始 -->
+            <div class="info">
+                <!-- 说明蓝色代表目标点云 -->
+                <div>蓝色: 目标点云</div>
+                
+                <!-- 说明黄色代表变换后的源点云 -->
+                <div>黄色: 变换后的源点云</div>
+                
+                <!-- 显示源点云和目标点云的点数，由JavaScript动态更新 -->
+                <div id="pointInfo">点数: 源:0, 目标:0</div>
+            </div>
+            <!-- 信息栏结束 -->
+            
+        </div>
+        <!-- 控制面板结束 -->
+        
+        <!-- 点云3D显示区域开始 -->
+        <div id="viewer" class="viewer"></div>
+        <!-- 点云3D显示区域结束 -->
+        
+    </div>
+    <!-- 主容器结束 -->
+
+    <!-- 引入Three.js库的CDN链接，版本为0.132.2 -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    
+    <!-- 引入Three.js的OrbitControls控制脚本，用于在3D空间中旋转、平移、缩放视图 -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- JavaScript代码块开始 -->
+    <script>
+        /* ===== 全局变量声明 ===== */
+        
+        /* 当前显示的样本索引，初始值为0 */
+        let currentSample = 0;
+        
+        /* 存储所有加载的点云样本数据的数组 */
+        let samples = [];
+        
+        /* Three.js场景对象，用于存储所有3D对象 */
+        let scene;
+        
+        /* Three.js相机对象，定义观察点云的视点 */
+        let camera;
+        
+        /* Three.js渲染器对象，负责将场景渲染到画布 */
+        let renderer;
+        
+        /* OrbitControls控制器对象，用于处理鼠标交互和视图移动 */
+        let controls;
+        
+        /* ===== Three.js场景初始化函数 ===== */
+        
+        /* 初始化Three.js场景的函数 */
+        function initThreeJS() {
+            /* 获取ID为"viewer"的DOM元素作为容器 */
+            const container = document.getElementById('viewer');
+            
+            /* ===== 创建场景部分 ===== */
+            
+            /* 创建一个新的Three.js场景对象 */
+            scene = new THREE.Scene();
+            
+            /* 设置场景的背景色为深灰色 */
+            scene.background = new THREE.Color(0x1e1e1e);
+            
+            /* ===== 创建相机部分 ===== */
+            
+            /* 创建透视相机
+               参数含义：
+               - 75: 视场角度（FOV），单位为度
+               - aspect: 宽高比，计算为容器宽度/高度
+               - 0.1: 近剪裁面，小于此距离的物体不可见
+               - 1000: 远剪裁面，大于此距离的物体不可见
+            */
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            
+            /* 设置相机初始位置，z轴方向距离场景中心5个单位 */
+            camera.position.z = 5;
+            
+            /* ===== 创建渲染器部分 ===== */
+            
+            /* 创建WebGL渲染器，启用抗锯齿以提高画质 */
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            
+            /* 设置渲染器的输出尺寸等于容器的尺寸 */
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            
+            /* 将渲染器的画布元素添加到容器DOM中 */
+            container.appendChild(renderer.domElement);
+            
+            /* ===== 添加轨道控制部分 ===== */
+            
+            /* 创建OrbitControls实例，允许用户旋转、平移、缩放视图
+               参数：camera（相机对象），renderer.domElement（鼠标事件监听对象）
+            */
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            
+            /* 启用阻尼（缓动）效果，使旋转有惯性 */
+            controls.enableDamping = true;
+            
+            /* 设置阻尼因子，控制缓动速度（0-1之间，值越小缓动越强） */
+            controls.dampingFactor = 0.25;
+            
+            /* ===== 添加光源部分 ===== */
+            
+            /* 创建环境光，给整个场景均匀的光照
+               参数：0x404040是光的颜色（RGB十六进制），强度为1
+            */
+            const ambientLight = new THREE.AmbientLight(0x404040);
+            
+            /* 将环境光添加到场景中 */
+            scene.add(ambientLight);
+            
+            /* 创建方向光，模拟太阳光的方向光源
+               参数：0xffffff是白色光，0.5是光的强度
+            */
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            
+            /* 设置方向光的位置 */
+            directionalLight.position.set(1, 1, 1);
+            
+            /* 将方向光添加到场景中 */
+            scene.add(directionalLight);
+            
+            /* ===== 添加坐标轴辅助线部分 ===== */
+            
+            /* 创建坐标轴辅助线，参数2表示轴线长度
+               红色表示X轴，绿色表示Y轴，蓝色表示Z轴
+            */
+            const axesHelper = new THREE.AxesHelper(2);
+            
+            /* 将坐标轴辅助线添加到场景中 */
+            scene.add(axesHelper);
+            
+            /* ===== 响应窗口大小变化部分 ===== */
+            
+            /* 监听窗口大小变化事件，触发onWindowResize函数 */
+            window.addEventListener('resize', onWindowResize);
+            
+            /* 启动动画循环 */
+            animate();
+        }
+        
+        /* ===== 处理窗口大小变化的函数 ===== */
+        
+        /* 当窗口大小改变时的处理函数 */
+        function onWindowResize() {
+            /* 获取容器元素 */
+            const container = document.getElementById('viewer');
+            
+            /* 更新相机的宽高比 */
+            camera.aspect = container.clientWidth / container.clientHeight;
+            
+            /* 更新相机的投影矩阵，使改变生效 */
+            camera.updateProjectionMatrix();
+            
+            /* 重新设置渲染器的尺寸 */
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+        
+        /* ===== 动画循环函数 ===== */
+        
+        /* 持续动画循环的函数 */
+        function animate() {
+            /* 请求浏览器在下一帧执行此函数，实现60FPS动画 */
+            requestAnimationFrame(animate);
+            
+            /* 更新轨道控制器的状态（包括阻尼等效果） */
+            controls.update();
+            
+            /* 使用相机渲染场景 */
+            renderer.render(scene, camera);
+        }
+        
+        /* ===== 数据加载函数 ===== */
+        
+        /* 加载点云样本数据的函数 */
+        function loadSamples() {
+            /* 发送HTTP GET请求到服务器的'/data'端点
+               fetch返回一个Promise
+            */
+            fetch('/data')
+                /* 第一个then: 处理响应对象，将其解析为JSON */
+                .then(response => response.json())
+                /* 第二个then: 处理解析后的JSON数据 */
+                .then(data => {
+                    /* 将接收到的数据存储在全局samples数组中 */
+                    samples = data;
+                    
+                    /* 检查是否成功加载至少一个样本 */
+                    if (samples.length > 0) {
+                        /* 初始化当前样本索引为0 */
+                        currentSample = 0;
+                        
+                        /* 显示第一个样本 */
+                        displaySample(currentSample);
+                    }
+                })
+                /* catch: 捕获请求或JSON解析过程中的错误 */
+                .catch(error => console.error('加载数据失败:', error));
+        }
+        
+        /* ===== 样本显示函数 ===== */
+        
+        /* 显示指定索引的点云样本的函数 */
+        function displaySample(index) {
+            /* ===== 清空场景部分 ===== */
+            
+            /* 循环移除场景中的所有子对象，直到场景为空 */
+            while(scene.children.length > 0){ 
+                /* 移除场景中的第一个子对象 */
+                scene.remove(scene.children[0]); 
+            }
+            
+            /* ===== 获取样本数据部分 ===== */
+            
+            /* 从samples数组中获取指定索引的样本数据 */
+            const sample = samples[index];
+            
+            /* ===== 更新UI信息部分 ===== */
+            
+            /* 获取ID为"sampleInfo"的DOM元素，更新样本序号显示 */
+            document.getElementById('sampleInfo').textContent = 
+                /* 显示"样本 X/Y"的格式，X为当前索引+1，Y为总样本数 */
+                `样本 ${index + 1}/${samples.length}`;
+            
+            /* 获取ID为"pointInfo"的DOM元素，更新点数信息 */
+            document.getElementById('pointInfo').textContent = 
+                /* 显示"点数: 源: X, 目标: Y"的格式 */
+                `点数: 源: ${sample.source_points.length}, 目标: ${sample.target_points.length}`;
+            
+            /* ===== 创建目标点云（蓝色）部分 ===== */
+            
+            /* 创建一个缓冲几何体，用于存储顶点数据 */
+            const targetGeometry = new THREE.BufferGeometry();
+            
+            /* 将目标点云坐标数据转换为Float32Array
+               flat()方法将二维数组转为一维数组
+            */
+            const targetVertices = new Float32Array(sample.target_points.flat());
+            
+            /* 设置几何体的位置属性（顶点坐标）
+               第二个参数3表示每个顶点有3个分量(x, y, z)
+            */
+            targetGeometry.setAttribute('position', new THREE.BufferAttribute(targetVertices, 3));
+            
+            /* 创建点云材质，指定颜色为蓝色(0x007acc) */
+            const targetMaterial = new THREE.PointsMaterial({ 
+                color: 0x007acc,  /* 颜色为蓝色 */
+                size: 0.02,  /* 点的大小为0.02 */
+                sizeAttenuation: true  /* 根据距离相机的距离调整点的大小 */
+            });
+            
+            /* 创建Points对象，将几何体和材质组合在一起 */
+            const targetPoints = new THREE.Points(targetGeometry, targetMaterial);
+            
+            /* 将目标点云添加到场景中 */
+            scene.add(targetPoints);
+            
+            /* ===== 创建源点云（黄色）部分 ===== */
+            
+            /* 创建一个缓冲几何体，用于存储源点云顶点数据 */
+            const sourceGeometry = new THREE.BufferGeometry();
+            
+            /* 将源点云坐标数据转换为Float32Array */
+            const sourceVertices = new Float32Array(sample.source_points.flat());
+            
+            /* 设置几何体的位置属性 */
+            sourceGeometry.setAttribute('position', new THREE.BufferAttribute(sourceVertices, 3));
+            
+            /* 创建点云材质，指定颜色为黄色(0xffcc00) */
+            const sourceMaterial = new THREE.PointsMaterial({ 
+                color: 0xffcc00,  /* 颜色为黄色 */
+                size: 0.02,  /* 点的大小为0.02 */
+                sizeAttenuation: true  /* 根据距离相机的距离调整点的大小 */
+            });
+            
+            /* 创建Points对象，将几何体和材质组合在一起 */
+            const sourcePoints = new THREE.Points(sourceGeometry, sourceMaterial);
+            
+            /* 将源点云添加到场景中 */
+            scene.add(sourcePoints);
+            
+            /* ===== 添加辅助元素部分 ===== */
+            
+            /* 创建坐标轴辅助线，帮助用户理解空间方向 */
+            const axesHelper = new THREE.AxesHelper(2);
+            
+            /* 将坐标轴添加到场景 */
+            scene.add(axesHelper);
+            
+            /* 创建环境光，为场景提供均匀照明 */
+            const ambientLight = new THREE.AmbientLight(0x404040);
+            
+            /* 将环境光添加到场景 */
+            scene.add(ambientLight);
+            
+            /* 创建方向光，模拟阳光 */
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            
+            /* 设置方向光的位置 */
+            directionalLight.position.set(1, 1, 1);
+            
+            /* 将方向光添加到场景 */
+            scene.add(directionalLight);
+        }
+        
+        /* ===== 样本导航函数 ===== */
+        
+        /* 显示下一个样本的函数 */
+        function nextSample() {
+            /* 检查是否还有下一个样本 */
+            if (currentSample < samples.length - 1) {
+                /* 样本索引加1 */
+                currentSample++;
+                
+                /* 显示新的样本 */
+                displaySample(currentSample);
+            }
+        }
+        
+        /* 显示上一个样本的函数 */
+        function prevSample() {
+            /* 检查是否有上一个样本（索引>0） */
+            if (currentSample > 0) {
+                /* 样本索引减1 */
+                currentSample--;
+                
+                /* 显示新的样本 */
+                displaySample(currentSample);
+            }
+        }
+        
+        /* ===== 页面加载事件处理 ===== */
+        
+        /* 当页面DOM完全加载完成时执行的处理函数 */
+        window.onload = function() {
+            /* 初始化Three.js场景 */
+            initThreeJS();
+            
+            /* 加载点云样本数据 */
+            loadSamples();
+        };
+    </script>
+    <!-- JavaScript代码块结束 -->
+    
+</body>
+<!-- 页面体结束 -->
+
+</html>
+<!-- HTML文档结束 -->

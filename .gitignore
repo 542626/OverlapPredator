@@ -7,3 +7,5 @@ weights/
 __pycache__/
 build/
 dump/
+data/
+weights/

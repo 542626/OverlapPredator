@@ -1,0 +1,242 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>点云配准结果可视化</title>
+    <meta charset="utf-8">
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: Arial, sans-serif; 
+            background: #1e1e1e; 
+            color: white; 
+            overflow: hidden;
+            height: 100vh;
+        }
+        .container { 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+        }
+        .controls { 
+            padding: 8px 12px; 
+            background: #2d2d2d; 
+            border-bottom: 1px solid #444;
+            min-height: 60px;
+            flex-shrink: 0;
+        }
+        .viewer { 
+            flex: 1; 
+            background: #000; 
+            position: relative;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #007acc;
+        }
+        .button-group {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        button { 
+            padding: 4px 8px; 
+            background: #007acc; 
+            color: white; 
+            border: none; 
+            border-radius: 2px; 
+            cursor: pointer; 
+            font-size: 12px;
+            min-width: 60px;
+        }
+        button:hover { background: #005a9e; }
+        .info { 
+            display: flex;
+            gap: 15px;
+            font-size: 11px;
+            color: #ccc;
+        }
+        .sample-info {
+            font-size: 11px;
+            color: #aaa;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="controls">
+            <div class="header">
+                <div class="title">点云配准结果可视化</div>
+                <div class="button-group">
+                    <button onclick="prevSample()">上一个</button>
+                    <button onclick="nextSample()">下一个</button>
+                    <span class="sample-info" id="sampleInfo">样本 0/0</span>
+                </div>
+            </div>
+            <div class="info">
+                <div>蓝色: 目标点云</div>
+                <div>黄色: 变换后的源点云</div>
+                <div id="pointInfo">点数: 源:0, 目标:0</div>
+            </div>
+        </div>
+        <div id="viewer" class="viewer"></div>
+    </div>
+
+            <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+            
+            <script>
+                let currentSample = 0;
+                let samples = [];
+                let scene, camera, renderer, controls;
+                
+                // 初始化Three.js场景
+                function initThreeJS() {
+                    const container = document.getElementById('viewer');
+                    
+                    // 创建场景
+                    scene = new THREE.Scene();
+                    scene.background = new THREE.Color(0x1e1e1e);
+                    
+                    // 创建相机
+                    camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+                    camera.position.z = 5;
+                    
+                    // 创建渲染器
+                    renderer = new THREE.WebGLRenderer({ antialias: true });
+                    renderer.setSize(container.clientWidth, container.clientHeight);
+                    container.appendChild(renderer.domElement);
+                    
+                    // 添加轨道控制
+                    controls = new THREE.OrbitControls(camera, renderer.domElement);
+                    controls.enableDamping = true;
+                    controls.dampingFactor = 0.25;
+                    
+                    // 添加光源
+                    const ambientLight = new THREE.AmbientLight(0x404040);
+                    scene.add(ambientLight);
+                    
+                    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+                    directionalLight.position.set(1, 1, 1);
+                    scene.add(directionalLight);
+                    
+                    // 添加坐标轴
+                    const axesHelper = new THREE.AxesHelper(2);
+                    scene.add(axesHelper);
+                    
+                    // 响应窗口大小变化
+                    window.addEventListener('resize', onWindowResize);
+                    
+                    animate();
+                }
+                
+                function onWindowResize() {
+                    const container = document.getElementById('viewer');
+                    camera.aspect = container.clientWidth / container.clientHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(container.clientWidth, container.clientHeight);
+                }
+                
+                function animate() {
+                    requestAnimationFrame(animate);
+                    controls.update();
+                    renderer.render(scene, camera);
+                }
+                
+                // 加载样本数据
+                function loadSamples() {
+                    fetch('/data')
+                        .then(response => response.json())
+                        .then(data => {
+                            samples = data;
+                            if (samples.length > 0) {
+                                currentSample = 0;
+                                displaySample(currentSample);
+                            }
+                        })
+                        .catch(error => console.error('加载数据失败:', error));
+                }
+                
+                // 显示样本
+                function displaySample(index) {
+                    // 清空场景
+                    while(scene.children.length > 0){ 
+                        scene.remove(scene.children[0]); 
+                    }
+                    
+                    const sample = samples[index];
+                    
+                    // 更新界面信息
+                    document.getElementById('sampleInfo').textContent = 
+                        `样本 ${index + 1}/${samples.length}`;
+                    document.getElementById('pointInfo').textContent = 
+                        `点数: 源: ${sample.source_points.length}, 目标: ${sample.target_points.length}`;
+                    
+                    // 创建目标点云（蓝色）
+                    const targetGeometry = new THREE.BufferGeometry();
+                    const targetVertices = new Float32Array(sample.target_points.flat());
+                    targetGeometry.setAttribute('position', new THREE.BufferAttribute(targetVertices, 3));
+                    const targetMaterial = new THREE.PointsMaterial({ 
+                        color: 0x007acc, 
+                        size: 0.02,
+                        sizeAttenuation: true
+                    });
+                    const targetPoints = new THREE.Points(targetGeometry, targetMaterial);
+                    scene.add(targetPoints);
+                    
+                    // 创建源点云（黄色）
+                    const sourceGeometry = new THREE.BufferGeometry();
+                    const sourceVertices = new Float32Array(sample.source_points.flat());
+                    sourceGeometry.setAttribute('position', new THREE.BufferAttribute(sourceVertices, 3));
+                    const sourceMaterial = new THREE.PointsMaterial({ 
+                        color: 0xffcc00, 
+                        size: 0.02,
+                        sizeAttenuation: true
+                    });
+                    const sourcePoints = new THREE.Points(sourceGeometry, sourceMaterial);
+                    scene.add(sourcePoints);
+                    
+                    // 添加坐标轴
+                    const axesHelper = new THREE.AxesHelper(2);
+                    scene.add(axesHelper);
+                    
+                    // 添加光源
+                    const ambientLight = new THREE.AmbientLight(0x404040);
+                    scene.add(ambientLight);
+                    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+                    directionalLight.position.set(1, 1, 1);
+                    scene.add(directionalLight);
+                }
+                
+                function nextSample() {
+                    if (currentSample < samples.length - 1) {
+                        currentSample++;
+                        displaySample(currentSample);
+                    }
+                }
+                
+                function prevSample() {
+                    if (currentSample > 0) {
+                        currentSample--;
+                        displaySample(currentSample);
+                    }
+                }
+                
+                // 页面加载完成后初始化
+                window.onload = function() {
+                    initThreeJS();
+                    loadSamples();
+                };
+            </script>
+        </body>
+        </html>
+        
