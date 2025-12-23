@@ -163,4 +163,4 @@ In this project we use (parts of) the official implementations of the followin w
 
  We thank the respective authors for open sourcing their methods. We would also like to thank reviewers, especially reviewer 2 for his/her valuable inputs. 
 ### visulization
-- 训练以及测试之后生成了测试结果的文件夹，可以使用可视化脚本进行可视化
+ 训练以及测试之后生成了测试结果的文件夹，可以使用可视化脚本进行可视化

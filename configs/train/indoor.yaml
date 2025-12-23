@@ -5,7 +5,7 @@ misc:
   verbose: True
   verbose_freq: 1000
   snapshot_freq: 1
-  pretrain: ''
+  pretrain: '/weights/indoor.pth'
 
 
 model:
