@@ -378,7 +378,7 @@ class PointCloudWebVisualizer:
         # 设置自定义处理程序
         WebVisualizerHandler.results = self.results
         
-        os.chdir('/media/user/新加卷/ljn_worksp/OverlapPredator-main')
+        os.chdir('.')
         
         # 使用localhost绑定，避免外部访问问题
         with socketserver.TCPServer(("localhost", self.port), WebVisualizerHandler) as httpd:
@@ -397,7 +397,7 @@ class PointCloudWebVisualizer:
 def main():
     """主函数"""
     # 设置快照目录路径
-    snapshot_dir = "/media/user/新加卷/ljn_worksp/OverlapPredator-main/snapshot"
+    snapshot_dir = "./snapshot"
     
     # 创建可视化器实例
     visualizer = PointCloudWebVisualizer(snapshot_dir)
