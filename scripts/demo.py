@@ -11,8 +11,10 @@ from torch.utils.data import Dataset
 from torch import optim, nn
 import open3d as o3d
 
+
 cwd = os.getcwd()
-sys.path.append(cwd)
+sys.path.append(cwd)#current working directory
+
 from datasets.indoor import IndoorDataset
 from datasets.dataloader import get_dataloader
 from models.architectures import KPFCNN
