@@ -12,7 +12,7 @@ sys.path.append(ROOT_DIR)
 URL = "http://127.0.0.1:8000"
 
 src = torch.load("/home/dl/workspace/python_project/OverlapPredator/data/indoor/test/7-scenes-redkitchen/cloud_bin_0.pth").tolist()
-tgt = torch.load("/home/dl/workspace/python_project/OverlapPredator/data/indoor/test/7-scenes-redkitchen/cloud_bin_1.pth").tolist()
+tgt = torch.load("/home/dl/workspace/python_project/OverlapPredator/data/indoor/test/7-scenes-redkitchen/cloud_bin_3.pth").tolist()
 
 
 # 打包成 JSON
